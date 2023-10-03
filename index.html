@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>NIfTI File Upload</title>
+</head>
+<body>
+    <h1>Upload a NIfTI File (.nii.gz)</h1>
+
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <label for="file">Select a .nii.gz file:</label>
+        <input type="file" id="file" name="file" accept=".nii.gz">
+        <br><br>
+        <input type="submit" value="Upload .nii.gz File">
+         
+    </form>
+    <form
+    <button  action="/predict" method="post" >Predict!</button>
+    <h3 id="result">
+        <span> </span>
+    </h3>
+    
+</body>
+</html>
+
