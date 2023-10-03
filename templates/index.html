@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Brain Tumor Analysis</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" />
+  </head>
+  <body class="bg-light">
+    <div class="container mt-5">
+      <div class="card">
+        <div class="card-body">
+          <h1 class="card-title">Brain Tumor Analysis</h1>
+          <p class="card-text">
+            Upload MRI structural images for analysis and prediction. Please select all modalities in .nii.gz format and
+            the segmented file
+          </p>
+          <form id="upload-form" action="/upload" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+              <label for="fileInput">Upload MRI Scans (Multiple modalities, .nii.gz format)</label>
+              <div class="custom-file">
+                <input
+                  type="file"
+                  name="files"
+                  class="custom-file-input"
+                  id="fileInput"
+                  multiple
+                  accept=".nii.gz"
+                  required
+                />
+                <label class="custom-file-label" for="fileInput">Choose files</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="segmInput">Upload Segmented MRI Scan (if available, .nii.gz format)</label>
+              <div class="custom-file">
+                <input type="file" name="segm" class="custom-file-input" id="segmInput" accept=".nii.gz" required />
+                <label class="custom-file-label" for="segmInput">Choose file</label>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-primary mt-3">Upload Files and Predict</button>
+          </form>
+          <div id="response" class="mt-4"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const form = document.getElementById("upload-form")
+      const fileInput = document.getElementById("fileInput")
+      const segmInput = document.getElementById("segmInput")
+      const responseDiv = document.getElementById("response")
+
+      fileInput.addEventListener("change", function () {
+        // Set the custom file label to the selected file names
+        const files = Array.from(this.files).map((file) => file.name)
+        document.querySelector('.custom-file-label[for="fileInput"]').textContent = files.join(", ")
+      })
+
+      segmInput.addEventListener("change", function () {
+        // Set the custom file label to the selected file name
+        document.querySelector('.custom-file-label[for="segmInput"]').textContent = this.files[0].name
+      })
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault()
+
+        const formData = new FormData()
+        for (const file of fileInput.files) {
+          formData.append("files", file)
+        }
+        if (segmInput.files[0]) {
+          formData.append("segm", segmInput.files[0])
+        }
+
+        const response = await fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          responseDiv.innerHTML = `
+            <p class="text-success mt-3">API Response: ${data.message}</p>
+            <p class="text-success mt-3">MGMT Positivity: ${data.pred}%</p>
+        `
+        } else {
+          responseDiv.innerHTML = `<p class="text-danger mt-3">Error: ${response.status} - ${response.statusText}</p>`
+        }
+      })
+    </script>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  </body>
+</html>
