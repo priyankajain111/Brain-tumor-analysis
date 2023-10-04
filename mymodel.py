@@ -148,8 +148,8 @@ import numpy as np
 from tqdm import tqdm
   
 
-df_ids = pd.read_csv("D:/flask/uploads/my_data.csv")
-    
+modalities = ["FLAIR", "T1GD", "T1", "T2"]
+
 class ModelFeatureExtractor:
     def __init__(self, model, modalities):
         self.model_name = model
@@ -270,11 +270,11 @@ class ModelFeatureExtractor:
         # Add your preprocess_image_slices logic here
         
         # Load image data
-        image_path = f'D:/flask/uploads/{patient_id}_{modality}.nii.gz'
+        image_path = f'./uploads/{patient_id}_{modality}.nii.gz'
         image_data = nib.load(image_path).get_fdata()
 
         # Load segmentation data
-        seg_path = f'D:/flask/uploads/{patient_id}_automated_approx_segm.nii.gz'
+        seg_path = f'./uploads/{patient_id}_automated_approx_segm.nii.gz'
         image_data_seg = nib.load(seg_path).get_fdata()
 
         # Compute bounding box and slice range
@@ -349,19 +349,11 @@ class ModelFeatureExtractor:
             # Append the current patient's feature lists to the overall feature lists
             self.features_avg_vgg.append(features_row_avg_vgg)
             self.features_std_vgg.append(features_row_std_vgg)
-modalities = ["FLAIR", "T1GD", "T1", "T2"]
+
 alexnet_extractor = ModelFeatureExtractor("AlexNet", modalities)
-alexnet_extractor.extract_features_alex(df_ids)
 vggnet_extractor = ModelFeatureExtractor("VGGNet", modalities)
-vggnet_extractor.extract_features_vgg(df_ids)
-panda_features_avg_alex = pd.DataFrame(data = alexnet_extractor.features_avg_alex)
-panda_features_std_alex = pd.DataFrame(data = alexnet_extractor.features_std_alex)
-panda_features_avg_vgg = pd.DataFrame(data = vggnet_extractor.features_avg_vgg)
-panda_features_std_vgg = pd.DataFrame(data = vggnet_extractor.features_std_vgg)
-print(panda_features_avg_alex.shape,panda_features_avg_vgg.shape)
 
-
-def rename():
+def rename(panda_features_avg_alex, panda_features_std_alex, panda_features_avg_vgg, panda_features_std_vgg):
     modalities = ["FLAIR", "T1GD", "T1", "T2"]
     n_features_alex = 256
     n_features_vgg = 512
@@ -379,45 +371,56 @@ def rename():
 
 
 
-def concatenate():
+def concatenate(panda_features_avg_alex, panda_features_std_alex, panda_features_avg_vgg, panda_features_std_vgg):
     final_alex_features = pd.concat([panda_features_avg_alex, panda_features_std_alex], axis=1)
     final_vgg_features = pd.concat([panda_features_avg_vgg, panda_features_std_vgg], axis=1)
-    final_alex_features.to_csv("D:/flask/uploads/final_alex_features.csv",index=False,header = final_alex_features.columns)
-    final_vgg_features.to_csv("D:/flask/uploads/final_vgg_features.csv",index=False,header = final_vgg_features.columns)
-    df1 = pd.read_csv("D:/flask/uploads/final_alex_features.csv")
-    df2 = pd.read_csv("D:/flask/uploads/final_vgg_features.csv")
+    final_alex_features.to_csv("./uploads/final_alex_features.csv",index=False,header = final_alex_features.columns)
+    final_vgg_features.to_csv("./uploads/final_vgg_features.csv",index=False,header = final_vgg_features.columns)
+    df1 = pd.read_csv("./uploads/final_alex_features.csv")
+    df2 = pd.read_csv("./uploads/final_vgg_features.csv")
     merged_df = pd.concat([df1, df2], axis=1)
-    merged_df.to_csv("D:/flask/uploads/final_features.csv", index=False)
+    merged_df.to_csv("./uploads/final_features.csv", index=False)
     print(merged_df.head())
 
 
 def selected():
     file1_path = 'D:/GBMFeatures/FEATURES_FINAL/MGMT/final_features_MGMT_60.csv'
     df1 = pd.read_csv(file1_path)
-    file2_path = 'D:/flask/uploads/final_features.csv'
+    file2_path = './uploads/final_features.csv'
     df2 = pd.read_csv(file2_path)
     common_columns = list(set(df1.columns).intersection(df2.columns))
     selected_df = df1[common_columns]
-    selected_df.to_csv('D:/flask/uploads/final_features_MGMT.csv', index=False)
+    selected_df.to_csv('./uploads/final_features_MGMT.csv', index=False)
     print(selected_df.head())
 
 
 def predict():
-
     
-    rename()
-    concatenate()
+    df_ids = pd.read_csv("./uploads/my_data.csv")
+    
+
+    alexnet_extractor.extract_features_alex(df_ids)
+
+    vggnet_extractor.extract_features_vgg(df_ids)
+    panda_features_avg_alex = pd.DataFrame(data = alexnet_extractor.features_avg_alex)
+    panda_features_std_alex = pd.DataFrame(data = alexnet_extractor.features_std_alex)
+    panda_features_avg_vgg = pd.DataFrame(data = vggnet_extractor.features_avg_vgg)
+    panda_features_std_vgg = pd.DataFrame(data = vggnet_extractor.features_std_vgg)
+    print(panda_features_avg_alex.shape,panda_features_avg_vgg.shape)
+    
+    rename(panda_features_avg_alex, panda_features_std_alex, panda_features_avg_vgg, panda_features_std_vgg)
+    concatenate(panda_features_avg_alex, panda_features_std_alex, panda_features_avg_vgg, panda_features_std_vgg)
     selected()
     class_weights = {0: 1, 1: 1.3}
 
     target = 'MGMT'
     n_features = 60
 
-    concatenated_features = pd.read_csv(f"D:/flask/uploads/final_features_MGMT.csv")
+    concatenated_features = pd.read_csv(f"./uploads/final_features_MGMT.csv")
     concatenated_features_mgmt = concatenated_features
     target_df = pd.read_csv("D:/GBMFeatures/MGMT_OS.csv")[target]
 
-# Step 6: Train an SVM model using Stratified Kfold cross validation and grid search cv
+    # Step 6: Train an SVM model using Stratified Kfold cross validation and grid search cv
     scaler = StandardScaler()
     svc = SVC(probability=True, class_weight=class_weights)
 
